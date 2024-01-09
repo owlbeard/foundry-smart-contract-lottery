@@ -6,7 +6,7 @@ import {VRFConsumerBaseV2} from "../lib/chainlink-brownie-contracts/contracts/sr
 
 /**
  * @title A sample Raffle Contract
- * @author Ömer Faruk Altun
+ * @author owlbeard
  * @notice This contract creates a simple raffle
  * @dev Implements Chainlink VRFv2
  */
@@ -48,16 +48,17 @@ contract Raffle is VRFConsumerBaseV2 {
     /** Events */
     event EnteredRaffle(address indexed player);
     event WinnerPicked(address indexed winner);
+    event RequestedRaffleWinner(uint256 indexed requestId);
 
     constructor(
-        uint256 _entranceFee,
+        uint256 entranceFee,
         uint256 interval,
         address vrfCoordinator,
         bytes32 keyHash,
         uint64 subscriptionId,
         uint32 callbackGasLimit
     ) VRFConsumerBaseV2(vrfCoordinator) {
-        i_entranceFee = _entranceFee;
+        i_entranceFee = entranceFee;
         i_interval = interval;
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinator);
         i_keyHash = keyHash;
@@ -105,13 +106,14 @@ contract Raffle is VRFConsumerBaseV2 {
             );
         }
         s_state = RaffleState.CALCULATING_WINNER;
-        i_vrfCoordinator.requestRandomWords(
+        uint256 requestId = i_vrfCoordinator.requestRandomWords(
             i_keyHash,
             i_subscriptionId,
             REQUEST_CONFIRMATIONS,
             i_callbackGasLimit,
             NUM_WORDS
         );
+        emit RequestedRaffleWinner(requestId);
     }
 
     function fulfillRandomWords(
@@ -131,8 +133,28 @@ contract Raffle is VRFConsumerBaseV2 {
         }
     }
 
-    /** Getter Function */
+    /** Getter Functions */
     function getEntranceFee() external view returns (uint256) {
         return i_entranceFee;
+    }
+
+    function getRaffleState() external view returns (RaffleState) {
+        return s_state;
+    }
+
+    function getPlayers(uint256 index) external view returns (address) {
+        return s_players[index];
+    }
+
+    function getRecentWinner() external view returns (address) {
+        return s_recentWinner;
+    }
+
+    function getLengthOfPlayers() external view returns (uint256) {
+        return s_players.length;
+    }
+
+    function getLastTimeStamp() external view returns (uint256) {
+        return s_lastTimeStamp;
     }
 }
